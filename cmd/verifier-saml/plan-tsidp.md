@@ -41,7 +41,7 @@ sequenceDiagram
     IdP->>IdP: Sign Response (RSA-SHA256)
 
     IdP->>User: Send HTTP-POST form that auto-submits to SP's ACS URL
-    User->>SP: (auto) POST /saml/acs
+    User->>SP: (auto) POST /saml/acs with SAMLResponse + RelayState
 
     Note over SP: Validate Response
     SP->>SP: Verify Response signature
@@ -700,39 +700,77 @@ The SAML implementation is complete when:
 
 After the core implementation:
 
-1. **Funnel Support for SAML** - Enable SAML SSO over public internet
-
-   - Remove `isFunnelRequest()` guard from SSO endpoint
-   - Extend `FunnelClient` struct to include SAML fields:
-
-     ```go
-     type FunnelClient struct {
-         ClientID    string   `json:"client_id"`
-         // ... existing OAuth fields ...
-
-         // SAML fields
-         SAMLEntityID string  `json:"saml_entity_id,omitempty"`  // SP Entity ID for verification
-     }
-     ```
-
-   - Verify SP Entity ID matches registered FunnelClient for Funnel requests
-   - Allow SP registration via UI/API similar to OAuth clients
-   - **Note**: SAML is enabled per-IdP with `-experimental-enable-saml` flag, not per-client
+1. **SP Registry with Admin UI** - Allow registering SPs via admin UI
+   - **Why**: Currently tsidp accepts any SP Entity ID without validation. Production environments need SP registration and verification.
+   - **Value**: Improves security by validating SPs before authentication. Enables per-SP configuration (custom attributes, certificates). Provides audit trail of authorized SPs.
+   - **Complexity**: Medium
+     - Define minimal `SAMLServiceProvider` struct (similar to `FunnelClient`)
+       - EntityID (string) - unique identifier for the SP
+       - Name (string) - human-readable display name
+       - ACSURLs ([]string) - list of valid Assertion Consumer Service URLs
+       - Note: No metadata XML, certificates, or parsed EntityDescriptor stored
+     - Add `samlServiceProviders map[string]*SAMLServiceProvider` to `IDPServer` struct
+       - Key is Entity ID for O(1) lookup
+     - Implement `storeSAMLServiceProvidersLocked()` for persistence (similar to `storeFunnelClientsLocked()`)
+       - Store in `{stateDir}/saml-service-providers.json`
+     - Load SP registry on startup in `loadState()`
+     - Add SAML SP management UI pages (similar to OAuth client management in `ui.go`)
+       - List view: Display registered SPs with Entity ID, name, and ACS URLs
+       - Create/Edit form: Manual entry of Name, Entity ID, and ACS URLs (one per line)
+       - Delete action: Remove SP from registry
+       - No metadata XML upload/parsing in initial version
+     - Add basic validation during form submission:
+       - Entity ID format validation (valid URI)
+       - ACS URL format validation (valid HTTPS/HTTP URLs)
+       - Uniqueness check for Entity ID
+     - Modify `serveSAMLSSO()` to validate SP during SSO flow:
+       - Lookup Entity ID from AuthnRequest.Issuer in registry
+       - Validate ACS URL from AuthnRequest matches one of the registered ACSURLs
+       - Return SAML error if Entity ID not registered or ACS URL mismatch
+     - **Deferred to future enhancement**: AuthnRequest signature verification
+       - Rationale: Tailnet-only deployment has encrypted transport (low MITM risk)
+       - Entity ID + ACS URL validation provides reasonable protection
+       - Can add signature verification when Funnel support is needed
 
 2. **Assertion Encryption** - Support for encrypted assertions (EncryptedAssertion)
+   - **Why**: Some SPs require encrypted assertions for compliance (e.g., healthcare, financial services). Assertions can be intercepted during browser redirects if not encrypted.
+   - **Value**: Enables tsidp to integrate with high-security SPs that mandate encryption. Protects sensitive user attributes in transit beyond just TLS.
+   - **Complexity**: Medium
+     - Import SP encryption certificates from SP metadata
+     - Use `goxmldsig` or similar library for XML encryption (xmlenc)
+     - Encrypt assertion with SP's public key before embedding in response
+     - Support AES-128-CBC or AES-256-GCM encryption algorithms
+     - Handle EncryptedAssertion element structure per SAML spec
 
 3. **Advanced Attributes** - More user attributes from Tailscale (groups, tags)
+   - **Why**: SPs often make authorization decisions based on group membership or roles. Currently only email is provided.
+   - **Value**: Enables attribute-based access control (ABAC) in SPs. Allows SPs to grant different permissions based on Tailscale ACL tags or user groups.
+   - **Complexity**: Low
+     - Extract additional fields from `WhoIs` response (UserProfile.ID, tags, capabilities)
+     - Map Tailscale tags/ACL groups to SAML group attributes
+     - Add attributes to AttributeStatement (groups, uid, displayName)
+     - Define standard attribute name mappings for common SP expectations
+     - Add configuration for which attributes to include by default
 
-4. **SP Metadata Import** - Allow registering SPs via metadata upload
+4. **SAML Artifact Binding** - Support artifact binding in addition to POST
+   - **Why**: Artifact binding keeps assertions server-side and only sends artifact IDs via browser. More secure for large assertions or sensitive data.
+   - **Value**: Reduces exposure of assertion data in browser. Required by some enterprise SPs. Better for assertions larger than URL/form size limits.
+   - **Complexity**: High
+     - Implement artifact storage (in-memory cache with TTL or persistent store)
+     - Generate unique artifact IDs (160-bit identifiers)
+     - Add artifact resolution endpoint (POST /saml/artifact)
+     - Support SOAP binding for artifact resolution requests
+     - Validate artifact requests and return stored assertions
+     - Handle artifact expiration and cleanup
+     - Update metadata to advertise ArtifactResolutionService endpoint
 
-   - Parse SP metadata XML
-   - Extract AssertionConsumerService URLs
-   - Store SP certificates for request validation
-
-5. **Single Logout (SLO)** - Implement SAML logout protocol
-
-6. **SAML Artifact Binding** - Support artifact binding in addition to POST
-
-7. **Attribute Mapping** - Configurable attribute names for different SPs
-
-8. **Multi-tenant Support** - Different SAML configs for different Tailscale tags/groups
+6. **Attribute Mapping** - Configurable attribute names for different SPs
+   - **Why**: Different SPs expect different attribute names (e.g., "email" vs "EmailAddress" vs "urn:oid:0.9.2342.19200300.100.1.3").
+   - **Value**: Eliminates need for attribute transformation at SP side. Enables tsidp to work with SPs that have rigid attribute name requirements. Reduces SP-side configuration complexity.
+   - **Complexity**: Medium
+     - Design attribute mapping configuration format (JSON/YAML per SP)
+     - Store mappings in SP registry (requires enhancement #4)
+     - Define default attribute name templates (SAML 2.0 core, custom)
+     - Implement mapping engine to transform attributes during assertion generation
+     - Support attribute format types (URI, Basic, Unspecified)
+     - Allow both simple name mapping and value transformation
