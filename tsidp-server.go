@@ -168,6 +168,10 @@ func main() {
 		lns = append(lns, ln)
 	}
 
+	if *flagEnableSAML {
+		slog.Warn("Experimental SAML support enabled")
+	}
+
 	srv := server.New(
 		lc,
 		*flagDir,

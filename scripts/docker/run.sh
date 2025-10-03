@@ -27,6 +27,10 @@ if [ -n "$TSIDP_LOCAL_PORT" ]; then
     ARGS="$ARGS -local-port=$TSIDP_LOCAL_PORT"
 fi
 
+if [ -n "$TSIDP_EXPERIMENTAL_ENABLE_SAML" ]; then
+    ARGS="$ARGS -experimental-enable-saml"
+fi
+
 # logging control
 if [ -n "$TSIDP_LOG" ]; then
     case "$TSIDP_LOG" in
