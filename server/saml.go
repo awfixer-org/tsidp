@@ -229,6 +229,15 @@ func (s *IDPServer) serveSAMLSSO(w http.ResponseWriter, r *http.Request) {
 			"urn:oasis:names:tc:SAML:2.0:status:Responder",
 			"",
 			"failed to generate response")
+	} else {
+		n := who.Node.View()
+		slog.Info("successful SAML sso",
+			slog.String("for", who.UserProfile.LoginName),
+			slog.String("uid", n.User().String()),
+			slog.String("spEntityID", spEntityID),
+			slog.String("relayState", relayState),
+		)
+
 	}
 }
 
