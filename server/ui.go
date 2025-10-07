@@ -364,16 +364,40 @@ func (s *IDPServer) renderFormSuccess(w http.ResponseWriter, r *http.Request, da
 	}
 }
 
-// validateRedirectURI validates that a redirect URI is well-formed
+// validateRedirectURI validates that a redirect URI is well-formed and secure.
+// Per OAuth 2.0 Security Best Practices (RFC 8252, BCP 212), only safe schemes are allowed.
 func validateRedirectURI(redirectURI string) string {
 	u, err := url.Parse(redirectURI)
 	if err != nil || u.Scheme == "" {
 		return "must be a valid URI with a scheme"
 	}
-	if u.Scheme == "http" || u.Scheme == "https" {
+
+	// Only allow safe schemes to prevent XSS and other injection attacks
+	scheme := strings.ToLower(u.Scheme)
+	switch scheme {
+	case "https":
+		// HTTPS is always allowed
 		if u.Host == "" {
-			return "HTTP and HTTPS URLs must have a host"
+			return "HTTPS URLs must have a host"
 		}
+	case "http":
+		// HTTP only allowed for localhost/loopback (per RFC 8252 section 7.3)
+		if u.Host == "" {
+			return "HTTP URLs must have a host"
+		}
+		host := strings.ToLower(u.Host)
+		// Check for localhost and loopback addresses
+		if !strings.HasPrefix(host, "localhost:") &&
+		   !strings.HasPrefix(host, "localhost") &&
+		   !strings.HasPrefix(host, "127.") &&
+		   !strings.HasPrefix(host, "[::1]") {
+			return "HTTP URLs only allowed for localhost/loopback addresses"
+		}
+	default:
+		// Reject dangerous schemes: javascript:, data:, vbscript:, file:, etc.
+		// Only custom app schemes would be allowed here, and we're being strict
+		return fmt.Sprintf("unsupported URI scheme %q (only https and http://localhost allowed)", scheme)
 	}
+
 	return ""
 }

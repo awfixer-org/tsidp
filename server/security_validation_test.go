@@ -53,15 +53,16 @@ func TestRedirectURI_Validation(t *testing.T) {
 			reason:    "Loopback HTTP allowed for development",
 		},
 		{
-			name:      "Valid_CustomScheme_Mobile",
+			name:      "Blocked_CustomScheme_Mobile",
 			uri:       "com.example.myapp://callback",
-			wantValid: true,
-			reason:    "Custom schemes for mobile apps",
+			wantValid: false,
+			reason:    "Custom schemes not currently supported (strict allow-list)",
 		},
 		{
-			name:      "Valid_CustomScheme_Simple",
+			name:      "Blocked_CustomScheme_Simple",
 			uri:       "myapp://callback",
-			wantValid: true,
+			wantValid: false,
+			reason:    "Custom schemes not currently supported (strict allow-list)",
 		},
 
 		// Invalid URIs - Empty/Malformed
@@ -90,24 +91,36 @@ func TestRedirectURI_Validation(t *testing.T) {
 			reason:    "Malformed URI",
 		},
 
-		// Security tests - Current validation status
+		// Security tests - Dangerous schemes blocked (RFC 8252, BCP 212)
 		{
-			name:      "CurrentBehavior_HTTP_NonLocalhost_Allowed",
+			name:      "Blocked_HTTP_NonLocalhost",
 			uri:       "http://example.com/callback",
-			wantValid: true,
-			reason:    "TODO: HTTP non-localhost currently allowed (should restrict)",
+			wantValid: false,
+			reason:    "HTTP non-localhost blocked per RFC 8252",
 		},
 		{
-			name:      "CurrentBehavior_DataURI_Allowed",
+			name:      "Blocked_DataURI_XSS",
 			uri:       "data:text/html,test",
-			wantValid: true,
-			reason:    "TODO: Data URIs currently allowed (security risk)",
+			wantValid: false,
+			reason:    "Data URIs blocked to prevent XSS",
 		},
 		{
-			name:      "CurrentBehavior_JavaScript_Allowed",
+			name:      "Blocked_JavaScript_XSS",
 			uri:       "javascript:alert('test')",
-			wantValid: true,
-			reason:    "TODO: JavaScript URIs currently allowed (XSS risk)",
+			wantValid: false,
+			reason:    "JavaScript URIs blocked to prevent XSS",
+		},
+		{
+			name:      "Blocked_VBScript_XSS",
+			uri:       "vbscript:msgbox('test')",
+			wantValid: false,
+			reason:    "VBScript URIs blocked to prevent XSS",
+		},
+		{
+			name:      "Blocked_File_Security",
+			uri:       "file:///etc/passwd",
+			wantValid: false,
+			reason:    "File URIs blocked for security",
 		},
 	}
 

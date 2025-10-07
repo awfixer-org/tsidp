@@ -53,19 +53,19 @@ func TestValidateRedirectURI(t *testing.T) {
 			want: "",
 		},
 		{
-			name: "valid mobile app scheme",
+			name: "blocked mobile app scheme",
 			uri:  "myapp://auth/callback",
-			want: "",
+			want: `unsupported URI scheme "myapp" (only https and http://localhost allowed)`,
 		},
 		{
-			name: "valid custom scheme with subdomain",
+			name: "blocked custom scheme with subdomain",
 			uri:  "com.example.app://callback",
-			want: "",
+			want: `unsupported URI scheme "com.example.app" (only https and http://localhost allowed)`,
 		},
 		{
-			name: "valid scheme with path and query",
+			name: "blocked scheme with path and query",
 			uri:  "myapp://auth/callback?state=123",
-			want: "",
+			want: `unsupported URI scheme "myapp" (only https and http://localhost allowed)`,
 		},
 		{
 			name: "missing scheme",
@@ -85,17 +85,17 @@ func TestValidateRedirectURI(t *testing.T) {
 		{
 			name: "HTTP URL missing host",
 			uri:  "http:///callback",
-			want: "HTTP and HTTPS URLs must have a host",
+			want: "HTTP URLs must have a host",
 		},
 		{
 			name: "HTTPS URL missing host",
 			uri:  "https:///callback",
-			want: "HTTP and HTTPS URLs must have a host",
+			want: "HTTPS URLs must have a host",
 		},
 		{
-			name: "custom scheme without host is valid",
+			name: "custom scheme blocked even without host",
 			uri:  "myapp:///callback",
-			want: "",
+			want: `unsupported URI scheme "myapp" (only https and http://localhost allowed)`,
 		},
 	}
 

@@ -314,8 +314,8 @@ func TestRedirectURIValidationSecurity(t *testing.T) {
 		},
 		{
 			uri:           "myapp://callback",
-			shouldBeValid: true,
-			reason:        "Custom scheme for mobile apps",
+			shouldBeValid: false,
+			reason:        "Custom scheme blocked (strict allow-list)",
 		},
 		{
 			uri:           "",

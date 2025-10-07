@@ -239,35 +239,33 @@ Created `server/fuzz_test.go` (215 lines, 6 fuzz tests):
 
 ---
 
-## Known Issues & Recommendations
+## Security Improvements
 
-### Security Gaps (Discovered During Testing)
+### ✅ Redirect URI Validation Hardened (RFC 8252, BCP 212)
 
-**🔴 HIGH PRIORITY: Redirect URI Validation Too Permissive**
+**Security fix implemented** in `ui.go:367-403`:
 
-Current validation in `ui.go:368` accepts dangerous URI schemes:
-```go
-func validateRedirectURI(redirectURI string) string {
-    u, err := url.Parse(redirectURI)
-    if err != nil || u.Scheme == "" {
-        return "must be a valid URI with a scheme"
-    }
-    if u.Scheme == "http" || u.Scheme == "https" {
-        if u.Host == "" {
-            return "HTTP and HTTPS URLs must have a host"
-        }
-    }
-    return "" // Accepts everything else!
-}
-```
+Redirect URI validation now implements OAuth 2.0 Security Best Practices:
+- ✅ **Only HTTPS allowed** for production URIs
+- ✅ **HTTP restricted to localhost/loopback** (127.0.0.1, ::1, localhost)
+- ✅ **Dangerous schemes blocked**: `javascript:`, `data:`, `vbscript:`, `file:`
+- ✅ **Custom schemes blocked** (strict allow-list policy)
 
-**Currently allowed (XSS risk)**:
-- `javascript:alert('xss')`
-- `data:text/html,<script>alert('xss')</script>`
-- `vbscript:msgbox("xss")`
-- HTTP for non-localhost domains
+**Blocked for security**:
+- ❌ `javascript:alert('xss')` - XSS prevention
+- ❌ `data:text/html,<script>...</script>` - XSS prevention
+- ❌ `vbscript:msgbox("xss")` - XSS prevention
+- ❌ `file:///etc/passwd` - File access prevention
+- ❌ `http://example.com` - Only HTTPS for non-localhost
+- ❌ `myapp://callback` - Custom schemes (can be added if needed)
 
-**Tests document desired behavior** in `security_validation_test.go` with TODOs for hardening.
+**Allowed schemes**:
+- ✅ `https://example.com/callback` - Standard HTTPS
+- ✅ `http://localhost:8080/callback` - Localhost development
+- ✅ `http://127.0.0.1:8080/callback` - Loopback IPv4
+- ✅ `http://[::1]:8080/callback` - Loopback IPv6
+
+Tests updated to verify security posture in `security_validation_test.go`.
 
 ### Code Quality Improvements
 
