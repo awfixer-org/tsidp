@@ -328,127 +328,127 @@ Run existing tests: `make test-dev`
 ## Detailed Checklist
 
 ### Phase 1: Extend API Endpoints
-- [ ] Add `serveUpdateClient` function to [server/clients.go](../server/clients.go)
-  - [ ] Parse form data (name, redirect_uri)
-  - [ ] Validate redirect URIs using `splitRedirectURIs` and `validateRedirectURI`
-  - [ ] Update `s.funnelClients[clientID]` with new values
-  - [ ] Call `s.storeFunnelClientsLocked()`
-  - [ ] Return updated client JSON (without secret)
-  - [ ] Handle errors (404 for not found, 400 for validation, 500 for storage)
+- [x] Add `serveUpdateClient` function to [server/clients.go](../server/clients.go)
+  - [x] Parse form data (name, redirect_uri)
+  - [x] Validate redirect URIs using `splitRedirectURIs` and `validateRedirectURI`
+  - [x] Update `s.funnelClients[clientID]` with new values
+  - [x] Call `s.storeFunnelClientsLocked()`
+  - [x] Return updated client JSON (without secret)
+  - [x] Handle errors (404 for not found, 400 for validation, 500 for storage)
 
-- [ ] Add `serveRegenerateSecret` function to [server/clients.go](../server/clients.go)
-  - [ ] Generate new secret via `generateClientSecret()`
-  - [ ] Update `s.funnelClients[clientID].Secret`
-  - [ ] Call `s.storeFunnelClientsLocked()`
-  - [ ] Return client JSON with new secret included
-  - [ ] Handle errors (404 for not found, 500 for storage)
+- [x] Add `serveRegenerateSecret` function to [server/clients.go](../server/clients.go)
+  - [x] Generate new secret via `generateClientSecret()`
+  - [x] Update `s.funnelClients[clientID].Secret`
+  - [x] Call `s.storeFunnelClientsLocked()`
+  - [x] Return client JSON with new secret included
+  - [x] Handle errors (404 for not found, 500 for storage)
 
-- [ ] Update `serveClients` router function (line 123)
-  - [ ] Add handling for PUT method when client ID is in path
-  - [ ] Add handling for POST method with `/regenerate-secret` suffix
-  - [ ] Route to `serveUpdateClient` for PUT requests
-  - [ ] Route to `serveRegenerateSecret` for POST regenerate requests
+- [x] Update `serveClients` router function (line 123)
+  - [x] Add handling for PUT method when client ID is in path
+  - [x] Add handling for POST method with `/regenerate-secret` suffix
+  - [x] Route to `serveUpdateClient` for PUT requests
+  - [x] Route to `serveRegenerateSecret` for POST regenerate requests
 
 ### Phase 2: Add Unit Tests
-- [ ] Create `TestServeUpdateClient` in [server/client_test.go](../server/client_test.go)
-  - [ ] Test successful update with valid data
-  - [ ] Test update with empty redirect_uri (expect 400)
-  - [ ] Test update with invalid redirect URI (expect 400)
-  - [ ] Test update non-existent client (expect 404)
-  - [ ] Test persistence (create new server instance, verify changes saved)
-  - [ ] Verify secret not included in response
+- [x] Create `TestServeUpdateClient` in [server/client_test.go](../server/client_test.go)
+  - [x] Test successful update with valid data
+  - [x] Test update with empty redirect_uri (expect 400)
+  - [x] Test update with invalid redirect URI (expect 400)
+  - [x] Test update non-existent client (expect 404)
+  - [x] Test persistence (create new server instance, verify changes saved)
+  - [x] Verify secret not included in response
 
-- [ ] Create `TestServeRegenerateSecret` in [server/client_test.go](../server/client_test.go)
-  - [ ] Test successful regeneration
-  - [ ] Verify new secret different from old
-  - [ ] Verify new secret included in response
-  - [ ] Test regenerate for non-existent client (expect 404)
-  - [ ] Test persistence
+- [x] Create `TestServeRegenerateSecret` in [server/client_test.go](../server/client_test.go)
+  - [x] Test successful regeneration
+  - [x] Verify new secret different from old
+  - [x] Verify new secret included in response
+  - [x] Test regenerate for non-existent client (expect 404)
+  - [x] Test persistence
 
-- [ ] Run `make test-dev` and ensure all tests pass
+- [x] Run `make test-dev` and ensure all tests pass
 
 ### Phase 3: Update UI Templates with JavaScript
-- [ ] Modify [server/ui-edit.html](../server/ui-edit.html)
-  - [ ] Add `<script>` section before closing `</body>` tag
-  - [ ] Implement `handleFormSubmit` function:
-    - [ ] Prevent default form submission
-    - [ ] Detect context (create vs edit) from DOM
-    - [ ] Extract form data into FormData object
-    - [ ] Disable submit button during request
-    - [ ] Call appropriate API endpoint via fetch
-    - [ ] Handle success response
-    - [ ] Handle error response
-    - [ ] Re-enable submit button after completion
+- [x] Modify [server/ui-edit.html](../server/ui-edit.html)
+  - [x] Add `<script>` section before closing `</body>` tag
+  - [x] Implement `handleFormSubmit` function:
+    - [x] Prevent default form submission
+    - [x] Detect context (create vs edit) from DOM
+    - [x] Extract form data into FormData object
+    - [x] Disable submit button during request
+    - [x] Call appropriate API endpoint via fetch
+    - [x] Handle success response
+    - [x] Handle error response
+    - [x] Re-enable submit button after completion
 
-  - [ ] Implement `handleCreate` function:
-    - [ ] POST to `/clients/new` with FormData
-    - [ ] On success: extract client_id and client_secret from JSON
-    - [ ] Update DOM to show success message
-    - [ ] Populate readonly fields with client_id and secret
-    - [ ] Show "Back to Clients" link prominently
+  - [x] Implement `handleCreate` function:
+    - [x] POST to `/clients/new` with FormData
+    - [x] On success: extract client_id and client_secret from JSON
+    - [x] Update DOM to show success message
+    - [x] Populate readonly fields with client_id and secret
+    - [x] Show "Back to Clients" link prominently
 
-  - [ ] Implement `handleUpdate` function:
-    - [ ] Extract client ID from URL or form
-    - [ ] PUT to `/clients/{id}` with FormData
-    - [ ] On success: show success message
-    - [ ] On error: show error message
+  - [x] Implement `handleUpdate` function:
+    - [x] Extract client ID from URL or form
+    - [x] PUT to `/clients/{id}` with FormData
+    - [x] On success: show success message
+    - [x] On error: show error message
 
-  - [ ] Implement `handleRegenerateSecret` function:
-    - [ ] Triggered by button with `name="action" value="regenerate_secret"`
-    - [ ] Show confirm dialog (reuse onclick confirm)
-    - [ ] POST to `/clients/{id}/regenerate-secret`
-    - [ ] On success: show new secret in DOM
-    - [ ] Display success message
+  - [x] Implement `handleRegenerateSecret` function:
+    - [x] Triggered by button with `name="action" value="regenerate_secret"`
+    - [x] Show confirm dialog (reuse onclick confirm)
+    - [x] POST to `/clients/{id}/regenerate-secret`
+    - [x] On success: show new secret in DOM
+    - [x] Display success message
 
-  - [ ] Implement `handleDelete` function:
-    - [ ] Triggered by button with `name="action" value="delete"`
-    - [ ] Show confirm dialog (reuse onclick confirm)
-    - [ ] DELETE to `/clients/{id}`
-    - [ ] On success (204): redirect to `/`
-    - [ ] On error: show error message
+  - [x] Implement `handleDelete` function:
+    - [x] Triggered by button with `name="action" value="delete"`
+    - [x] Show confirm dialog (reuse onclick confirm)
+    - [x] DELETE to `/clients/{id}`
+    - [x] On success (204): redirect to `/`
+    - [x] On error: show error message
 
-  - [ ] Implement `showError(message)` helper function:
-    - [ ] Find or create `.alert-error` div
-    - [ ] Set message text
-    - [ ] Show div (remove hidden class if needed)
-    - [ ] Clear any success messages
+  - [x] Implement `showError(message)` helper function:
+    - [x] Find or create `.alert-error` div
+    - [x] Set message text
+    - [x] Show div (remove hidden class if needed)
+    - [x] Clear any success messages
 
-  - [ ] Implement `showSuccess(message)` helper function:
-    - [ ] Find or create `.alert-success` div
-    - [ ] Set message text
-    - [ ] Show div
-    - [ ] Clear any error messages
+  - [x] Implement `showSuccess(message)` helper function:
+    - [x] Find or create `.alert-success` div
+    - [x] Set message text
+    - [x] Show div
+    - [x] Clear any error messages
 
-  - [ ] Wire up event listeners:
-    - [ ] Add submit event listener to form
-    - [ ] Add click event listeners to action buttons
-    - [ ] Ensure event listeners added after DOM load
+  - [x] Wire up event listeners:
+    - [x] Add submit event listener to form
+    - [x] Add click event listeners to action buttons
+    - [x] Ensure event listeners added after DOM load
 
 ### Phase 4: Simplify ui.go Server Handlers
-- [ ] Modify [server/ui.go](../server/ui.go)
-  - [ ] Update `handleNewClient` (line 114):
-    - [ ] Keep GET branch (lines 115-120) as-is
-    - [ ] Remove entire POST branch (lines 122-182)
-    - [ ] Add case to return 405 Method Not Allowed for POST
+- [x] Modify [server/ui.go](../server/ui.go)
+  - [x] Update `handleNewClient` (line 114):
+    - [x] Keep GET branch (lines 115-120) as-is
+    - [x] Remove entire POST branch (lines 122-182)
+    - [x] Add case to return 405 Method Not Allowed for POST
 
-  - [ ] Update `handleEditClient` (line 189):
-    - [ ] Keep GET branch (lines 205-217) as-is
-    - [ ] Remove entire POST branch (lines 219-320)
-    - [ ] Add case to return 405 Method Not Allowed for POST
+  - [x] Update `handleEditClient` (line 189):
+    - [x] Keep GET branch (lines 205-217) as-is
+    - [x] Remove entire POST branch (lines 219-320)
+    - [x] Add case to return 405 Method Not Allowed for POST
 
-  - [ ] Remove `renderFormError` function (lines 351-356)
-  - [ ] Remove `renderFormSuccess` function (lines 360-365)
-  - [ ] Update `clientDisplayData` struct (lines 324-334):
-    - [ ] Remove `Success` field
-    - [ ] Remove `Error` field
-    - [ ] Keep all other fields
+  - [x] Remove `renderFormError` function (lines 351-356)
+  - [x] Remove `renderFormSuccess` function (lines 360-365)
+  - [x] Update `clientDisplayData` struct (lines 324-334):
+    - [x] Remove `Success` field
+    - [x] Remove `Error` field
+    - [x] Keep all other fields
 
 ### Phase 5: Regression Testing
-- [ ] Run `make test-dev` to verify all unit tests pass
-  - [ ] All existing tests in `client_test.go` pass
-  - [ ] All existing tests in `ui_test.go` pass
-  - [ ] New tests from Phase 2 pass (TestServeUpdateClient, TestServeRegenerateSecret)
-- [ ] Verify API contract maintained through unit test coverage
+- [x] Run `make test-dev` to verify all unit tests pass
+  - [x] All existing tests in `client_test.go` pass
+  - [x] All existing tests in `ui_test.go` pass
+  - [x] New tests from Phase 2 pass (TestServeUpdateClient, TestServeRegenerateSecret)
+- [x] Verify API contract maintained through unit test coverage
 
 ### Phase 6: Manual UI Testing (FYI - no code to write)
 
@@ -512,10 +512,10 @@ This is not a breaking change for end users. Migration is seamless:
 
 ## Success Criteria
 
-- [ ] All existing unit tests pass
-- [ ] All new unit tests pass
-- [ ] Manual browser testing checklist completed
-- [ ] No duplicate client mutation code remains in ui.go
-- [ ] UI functionality is equivalent to before (users see no difference)
-- [ ] Code is cleaner and more maintainable
-- [ ] API endpoints follow RESTful conventions
+- [x] All existing unit tests pass
+- [x] All new unit tests pass
+- [ ] Manual browser testing checklist completed (FYI - requires running dev server)
+- [x] No duplicate client mutation code remains in ui.go
+- [x] UI functionality is equivalent to before (users see no difference)
+- [x] Code is cleaner and more maintainable
+- [x] API endpoints follow RESTful conventions
