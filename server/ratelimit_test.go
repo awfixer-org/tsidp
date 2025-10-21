@@ -256,8 +256,8 @@ func TestRateLimitMultipleClientIsolation(t *testing.T) {
 func TestRateLimitIPAddressIsolation(t *testing.T) {
 	s := newTestServer(t)
 	s.SetRateLimiter(RateLimitConfig{
-		TokensPerSecond: 5,
-		BurstSize:       5,
+		TokensPerSecond: 1,   // Very slow refill (1 token/second) to prevent refill during test
+		BurstSize:       3,   // Small burst for faster exhaustion
 		BypassLocalhost: false,
 	})
 
@@ -287,12 +287,12 @@ func TestRateLimitIPAddressIsolation(t *testing.T) {
 		return w.Code
 	}
 
-	// Exhaust rate limit for IP 192.168.1.100 using client-ip1
-	for i := 0; i < 5; i++ {
+	// Exhaust rate limit for IP 192.168.1.100 using client-ip1 (3 requests = burst size)
+	for i := 0; i < 3; i++ {
 		makeRequest("192.168.1.100", client1, "client-ip1", "secret-ip1")
 	}
 
-	// IP 192.168.1.100 should be rate limited (even with different client)
+	// IP 192.168.1.100 should be rate limited on 4th request (even with different client)
 	if code := makeRequest("192.168.1.100", client1b, "client-ip1b", "secret-ip1b"); code != http.StatusTooManyRequests {
 		t.Error("IP 192.168.1.100 should be rate limited")
 	}
@@ -554,8 +554,8 @@ func TestRateLimitNoRateLimiterConfigured(t *testing.T) {
 func TestRateLimitXForwardedFor(t *testing.T) {
 	s := newTestServer(t)
 	s.SetRateLimiter(RateLimitConfig{
-		TokensPerSecond: 5,
-		BurstSize:       5,
+		TokensPerSecond: 1,   // Very slow refill (1 token/second) to prevent refill during test
+		BurstSize:       3,   // Small burst for faster exhaustion
 		BypassLocalhost: false,
 	})
 
@@ -586,12 +586,12 @@ func TestRateLimitXForwardedFor(t *testing.T) {
 		return w.Code
 	}
 
-	// Exhaust rate limit for IP 203.0.113.45 (via X-Forwarded-For) using xff-client-1
-	for i := 0; i < 5; i++ {
+	// Exhaust rate limit for IP 203.0.113.45 (via X-Forwarded-For) using xff-client-1 (3 requests = burst size)
+	for i := 0; i < 3; i++ {
 		makeRequest("203.0.113.45", client1, "xff-client-1", "xff-secret-1")
 	}
 
-	// Same X-Forwarded-For IP should be rate limited (even with different client)
+	// Same X-Forwarded-For IP should be rate limited on 4th request (even with different client)
 	if code := makeRequest("203.0.113.45", client1b, "xff-client-1b", "xff-secret-1b"); code != http.StatusTooManyRequests {
 		t.Error("X-Forwarded-For IP 203.0.113.45 should be rate limited")
 	}

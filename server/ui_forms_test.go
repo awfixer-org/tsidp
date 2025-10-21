@@ -1,3 +1,6 @@
+// Copyright (c) Tailscale Inc & AUTHORS
+// SPDX-License-Identifier: BSD-3-Clause
+
 package server
 
 import (
@@ -82,7 +85,9 @@ func TestUIHandleNewClientPOSTMultipleRedirectURIs(t *testing.T) {
 
 	formData := url.Values{}
 	formData.Set("name", "Multi-URI Client")
-	formData.Set("redirect_uris", "https://example.com/callback\nhttps://example.com/callback2\nhttp://localhost:8080/callback")
+	formData.Set("redirect_uris", `https://example.com/callback
+https://example.com/callback2
+http://localhost:8080/callback`)
 
 	req := httptest.NewRequest("POST", "/new", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -301,7 +306,8 @@ func TestUIHandleEditClientPOSTUpdate(t *testing.T) {
 
 	formData := url.Values{}
 	formData.Set("name", "Updated Name")
-	formData.Set("redirect_uris", "https://example.com/callback\nhttps://example.com/new")
+	formData.Set("redirect_uris", `https://example.com/callback
+https://example.com/new`)
 
 	req := httptest.NewRequest("POST", "/edit/"+clientID, strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")

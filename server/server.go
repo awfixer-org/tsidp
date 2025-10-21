@@ -517,20 +517,27 @@ func writeHTTPError(
 		slog.Debug("HTTP error", args...)
 	}
 
+	// Set headers before calling WriteHeader
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
-	w.WriteHeader(statusCode)
 
 	acceptHeader := r.Header.Get("Accept")
-	switch {
-	case strings.Contains(acceptHeader, "application/json"):
+	isJSON := strings.Contains(acceptHeader, "application/json")
+	if isJSON {
 		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	} else {
+		w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+	}
+
+	w.WriteHeader(statusCode)
+
+	// Write response body
+	if isJSON {
 		json.NewEncoder(w).Encode(httpErrorResponse{
 			Error:            errorCode,
 			ErrorDescription: errorDescription,
 		})
-	default:
-		w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+	} else {
 		fmt.Fprintf(w, "Error %d: %s - %s", statusCode, errorCode, errorDescription)
 	}
 }
