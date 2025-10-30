@@ -25,7 +25,6 @@ import (
 	"github.com/tailscale/tsidp/server"
 
 	"tailscale.com/client/local"
-	"tailscale.com/envknob"
 	"tailscale.com/hostinfo"
 	"tailscale.com/ipn"
 	"tailscale.com/ipn/ipnstate"
@@ -56,13 +55,9 @@ var (
 // main initializes and starts the tsidp server
 // Migrated from legacy/tsidp.go:75-239
 func main() {
-	flag.Parse()
 	ctx := context.Background()
-	if !envknob.UseWIPCode() {
-		slog.Error("cmd/tsidp is a work in progress and has not been security reviewed;\nits use requires TAILSCALE_USE_WIP_CODE=1 be set in the environment for now.")
-		os.Exit(1)
-	}
 
+	flag.Parse()
 	switch *flagLogLevel {
 	case "debug":
 		slog.SetLogLoggerLevel(slog.LevelDebug)
