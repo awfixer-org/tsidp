@@ -13,24 +13,30 @@ On start up, the client, gateway, and server each register themselves as OAuth c
 
 To run this example you’ll need to do the following:
 
-## 1) Run tsidp with the `--enable-sts` flag set
+## 1) Run tsidp
 
-If running via docker, it should look something like this:
+Using the latest docker container is recommended:
 
 ```bash
-docker run -d \
-  --name tsidp \
-  -p 443:443 \
-  -e TS_AUTHKEY=YOUR_TAILSCALE_AUTHKEY \
-  -e TSNET_FORCE_LOGIN=1
+$ docker run -it --rm --name tsidp \
+  -v tsidp-mcp-gateway-demo:/data \
+  -e TS_STATE_DIR=/data \
+  -e TS_HOSTNAME=tsidp-mcp-gateway-demo \
+  -e TSIDP_ENABLE_STS=1 \
   -e TAILSCALE_USE_WIP_CODE=1 \
-  -v tsidp-data:/var/lib/tsidp \
-  tsidp --hostname=idp --dir=/var/lib/tsidp --enable-sts
+  -e TSIDP_LOG=debug ghcr.io/tailscale/tsidp:latest
+
+2025/12/03 18:36:18 tsnet running state path /data/tailscaled.state
+2025/12/03 18:36:18 tsnet starting with hostname "tsidp-mcp-gateway-demo", varRoot "/data"
+2025/12/03 18:36:18 LocalBackend state is NeedsLogin; running StartLoginInteractive...
+2025/12/03 18:36:23 To start this tsnet server, restart with TS_AUTHKEY set, or go to: https://login.tailscale.com/a/abcd123456789
+2025/12/03 18:36:44 INFO tsidp server started server_url=https://tsidp-mcp-gateway-demo.<YOUR-TAILNET>.ts.net
+2025/12/03 18:36:48 AuthLoop: state is Running; done
 ```
 
 ## 2) Update the ACL rules on your tailnet
 
-To allow token exchange you’ll also need to add an [ACL application grant](https://tailscale.com/kb/1537/grants-app-capabilities)  rule to your tailnet that allows a given user and / or device the ability to exchange tokens for other resources. The following rule is extra permissive for this demo, but it allows anyone from any device on the tailnet to exchange tokens for the audiences of `http://localhost:8003` and `http://localhost:8001`
+To allow token exchange you’ll also need to add an [ACL application grant](https://tailscale.com/kb/1537/grants-app-capabilities) rule to your tailnet that allows a given user and / or device the ability to exchange tokens for other resources. The following rule is extra permissive for this demo, but it allows anyone from any device on the tailnet to exchange tokens for the audiences of `http://localhost:8003` and `http://localhost:8001`
 
 ```json
 {
@@ -40,7 +46,10 @@ To allow token exchange you’ll also need to add an [ACL application grant](htt
     "tailscale.com/cap/tsidp": [
       {
         "users":     ["*"],
+
+        // enable STS and dynamic client registration
         "resources": ["http://localhost:8003", "http://localhost:8001"],
+        "allow_dcr": true,
       },
     ],
   },
@@ -54,27 +63,47 @@ git clone https://github.com/tailscale/tsidp.git
 cd tsidp/examples/mcp-gateway/
 ```
 
-It’s recommended that you install `uv` to run the python examples.
+It’s recommended that you install `uv` to run the python examples. This demo
+also requires you to run an MCP server, gateway and client. This is easiest if
+you have them running in their own terminal windows.
 
-## 4) Run the server
+## 4) Run the MCP server
 
 In a new terminal window run the server using the following command. It should start on `localhost` port `8001`.
 
 ```bash
 cd server
-uv run mcp-auth-server --auth-server-url https://idp.YOUR_TAILNET.ts.net/
+$ uv run mcp-auth-server --auth-server-url https://tsidp-mcp-gateway-demo.<YOUR-TAILNET>.ts.net/
+2025-12-03 10:43:59,271 - INFO - Creating MCP server with required scopes: ['openid']
+2025-12-03 10:43:59,271 - INFO - Token verifier endpoint: https://tsidp-mcp-gateway-demo.<YOUR-TAILNET>.ts.net/introspect
+2025-12-03 10:43:59,271 - INFO - Resource server URL: http://localhost:8001
+2025-12-03 10:43:59,280 - INFO - MCP server ready - OAuth client: <CLIENT_ID>
+2025-12-03 10:43:59,280 - INFO - Server will require scopes: ['openid']
+2025-12-03 10:43:59,280 - INFO - Discovery endpoints available at http://localhost:8001/.well-known/
+INFO:     Started server process [12345]
+INFO:     Waiting for application startup.
+2025-12-03 10:43:59,296 - INFO - StreamableHTTP session manager started
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://localhost:8001 (Press CTRL+C to quit)
+...
 ```
 
-## 5) Run the gateway
+## 5) Run the MCP gateway
 
 In a new terminal window run the gateway using the following command. It should start on `localhost` port `8003`.
 
 ```bash
 cd gateway
-uv run mcp-auth-gateway --auth-server-url https://idp.YOUR_TAILNET.ts.net/ --mcp-server-url http://localhost:8001
+$ uv run mcp-auth-gateway --auth-server-url https://tsidp-mcp-gateway-demo.<YOUR-TAILNET>.ts.net/ --mcp-server-url http://localhost:8001
+MCP Auth Gateway v0.1.0
+Authorization Server: https://tsidp-mcp-gateway-demo.<YOUR-TAILNET>.ts.net/
+MCP Server: http://localhost:8001
+Gateway URL: http://localhost:8003
+
+...
 ```
 
-## 6) Run the client
+## 6) Run the MCP client
 
 In a new terminal window run the client using the following command. If successful it should pop up an authorization callback.
 
