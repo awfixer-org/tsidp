@@ -115,3 +115,72 @@ uv run mcp-auth-client http://localhost:8003/mcp
 ## 7) Make a tool call
 
 If everything was successful, you should be able to list the tools available on the server (via the gateway). In addition, you can call the `oauth_details` tool to see the token as the server received it.
+
+Example in the tool:
+
+```
+mcp>: list
+┏━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Tool          ┃ Description                                                         ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ debug_auth    │ Debug authentication by showing both header and context token info. │
+│               │                                                                     │
+│               │ This tool helps diagnose authentication issues by displaying        │
+│               │ what token is in the Authorization header vs what's in the context. │
+│               │                                                                     │
+│               │ Returns:                                                            │
+│               │     Dictionary with detailed auth debugging information             │
+│               │                                                                     │
+│ multiply      │ Multiply two numbers.                                               │
+│               │                                                                     │
+│               │ This tool requires OAuth authentication and returns the product     │
+│               │ of two input numbers along with authentication context.             │
+│               │                                                                     │
+│               │ Args:                                                               │
+│               │     a: First number to multiply                                     │
+│               │     b: Second number to multiply                                    │
+│               │                                                                     │
+│               │ Returns:                                                            │
+│               │     Dictionary with result and authentication info                  │
+│               │                                                                     │
+│ oauth_details │ Get OAuth authentication details for the current client.            │
+│               │                                                                     │
+│               │ Returns all available OAuth token information that the server       │
+│               │ knows about the authenticated client.                               │
+│               │                                                                     │
+│               │ Returns:                                                            │
+│               │     Dictionary with OAuth client and token details                  │
+│               │                                                                     │
+└───────────────┴─────────────────────────────────────────────────────────────────────┘
+
+mcp>: call oauth_details
+{
+  "authenticated": true,
+  "client_id": "8cc2afcec17ed1928086b1c8d4587dac",
+  "scopes": [
+    "openid",
+    "profile",
+    "email"
+  ],
+  "expires_at": 1764789340,
+  "resource": "http://localhost:8001",
+  "request_id": "6",
+  "token_type": "Bearer",
+  "current_time": 1764789300,
+  "time_until_expiry": 40,
+  "is_expired": false,
+  "token_preview": "e5d3ea8a...5d8e699d"
+}
+
+mcp>: call multiply {"a":2,"b":4}
+{
+  "operation": "multiplication",
+  "inputs": {
+    "a": 2.0,
+    "b": 4.0
+  },
+  "result": 8.0,
+  "authenticated_as": "8cc2afcec17ed1928086b1c8d4587dac",
+  "request_id": "5"
+}
+```
